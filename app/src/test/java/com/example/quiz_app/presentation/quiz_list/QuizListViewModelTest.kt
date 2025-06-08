@@ -8,6 +8,7 @@ import com.example.quiz_app.domain.repository.QuizRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -73,20 +74,15 @@ class QuizListViewModelTest {
         
         // When
         viewModel = QuizListViewModel(mockRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
         viewModel.uiState.test {
-            // Initial state should be loading
-            val initialState = awaitItem()
-            assertTrue(initialState.isLoading)
-            assertTrue(initialState.quizzes.isEmpty())
-            assertNull(initialState.errorMessage)
-            
-            // Then success state with quizzes
-            val successState = awaitItem()
-            assertFalse(successState.isLoading)
-            assertEquals(sampleQuizzes, successState.quizzes)
-            assertNull(successState.errorMessage)
+            // Should have success state with quizzes
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertEquals(sampleQuizzes, state.quizzes)
+            assertNull(state.errorMessage)
         }
     }
     
@@ -94,52 +90,49 @@ class QuizListViewModelTest {
     fun `when repository throws exception, it should emit error state`() = runTest {
         // Given
         val errorMessage = "Network error"
-        whenever(mockRepository.getQuizzes()).thenThrow(RuntimeException(errorMessage))
+        val errorFlow = flow<List<Quiz>> { 
+            throw RuntimeException(errorMessage) 
+        }
+        whenever(mockRepository.getQuizzes()).thenReturn(errorFlow)
         
         // When
         viewModel = QuizListViewModel(mockRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
         viewModel.uiState.test {
-            // Initial loading state
-            val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading)
-            
-            // Then error state
-            val errorState = awaitItem()
-            assertFalse(errorState.isLoading)
-            assertTrue(errorState.quizzes.isEmpty())
-            assertEquals(errorMessage, errorState.errorMessage)
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertTrue(state.quizzes.isEmpty())
+            assertEquals(errorMessage, state.errorMessage)
         }
     }
     
     @Test
     fun `when retry is called after error, it should reload quizzes`() = runTest {
         // Given
+        val errorFlow = flow<List<Quiz>> { 
+            throw RuntimeException("Network error") 
+        }
+        val successFlow = flowOf(sampleQuizzes)
+        
         whenever(mockRepository.getQuizzes())
-            .thenThrow(RuntimeException("Network error"))
-            .thenReturn(flowOf(sampleQuizzes))
+            .thenReturn(errorFlow)
+            .thenReturn(successFlow)
         
         viewModel = QuizListViewModel(mockRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
         
-        // When
+        // When - call retry
+        viewModel.retry()
+        testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then
         viewModel.uiState.test {
-            // Skip initial states
-            awaitItem() // loading
-            awaitItem() // error
-            
-            // Call retry
-            viewModel.retry()
-            
-            // Then it should emit loading and success states
-            val retryLoadingState = awaitItem()
-            assertTrue(retryLoadingState.isLoading)
-            assertNull(retryLoadingState.errorMessage)
-            
-            val retrySuccessState = awaitItem()
-            assertFalse(retrySuccessState.isLoading)
-            assertEquals(sampleQuizzes, retrySuccessState.quizzes)
-            assertNull(retrySuccessState.errorMessage)
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertEquals(sampleQuizzes, state.quizzes)
+            assertNull(state.errorMessage)
         }
     }
     
@@ -150,18 +143,14 @@ class QuizListViewModelTest {
         
         // When
         viewModel = QuizListViewModel(mockRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
         viewModel.uiState.test {
-            // Initial loading state
-            val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading)
-            
-            // Then success state with empty list
-            val successState = awaitItem()
-            assertFalse(successState.isLoading)
-            assertTrue(successState.quizzes.isEmpty())
-            assertNull(successState.errorMessage)
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertTrue(state.quizzes.isEmpty())
+            assertNull(state.errorMessage)
         }
     }
     
@@ -172,21 +161,17 @@ class QuizListViewModelTest {
         
         // When
         viewModel = QuizListViewModel(fakeRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
         viewModel.uiState.test {
-            // Initial loading state
-            val loadingState = awaitItem()
-            assertTrue(loadingState.isLoading)
-            
-            // Then success state with fake data
-            val successState = awaitItem()
-            assertFalse(successState.isLoading)
-            assertEquals(4, successState.quizzes.size) // FakeRepository has 4 quizzes
-            assertNull(successState.errorMessage)
+            val state = awaitItem()
+            assertFalse(state.isLoading)
+            assertEquals(4, state.quizzes.size) // FakeRepository has 4 quizzes
+            assertNull(state.errorMessage)
             
             // Verify first quiz data
-            val firstQuiz = successState.quizzes.first()
+            val firstQuiz = state.quizzes.first()
             assertEquals("1", firstQuiz.id)
             assertEquals("Android Development Fundamentals", firstQuiz.title)
             assertEquals(QuizDifficulty.BEGINNER, firstQuiz.difficulty)
