@@ -16,10 +16,13 @@ class QuizRepositoryImpl @Inject constructor(
     
     override fun getQuizzes(): Flow<List<Quiz>> = flow {
         try {
+            android.util.Log.d("QuizRepository", "API呼び出し開始: ${apiService}")
             val quizDtos = apiService.getQuizzes()
+            android.util.Log.d("QuizRepository", "API呼び出し成功: ${quizDtos.size}件取得")
             val quizzes = quizDtos.map { it.toDomain() }
             emit(quizzes)
         } catch (e: Exception) {
+            android.util.Log.e("QuizRepository", "API呼び出しエラー: ${e.message}", e)
             throw e
         }
     }
