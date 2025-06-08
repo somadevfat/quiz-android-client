@@ -17,7 +17,7 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "com.example.quiz_app.HiltTestRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -48,6 +48,12 @@ android {
             all {
                 useJUnitPlatform()
             }
+        }
+    }
+    
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
         }
     }
 }
@@ -109,6 +115,7 @@ dependencies {
     androidTestImplementation libs.androidx.ui.test.junit4
     androidTestImplementation libs.mockk.android
     androidTestImplementation libs.hilt.android.testing
+    kaptAndroidTest libs.hilt.compiler
     debugImplementation libs.androidx.ui.tooling
     debugImplementation libs.androidx.ui.test.manifest
 }
