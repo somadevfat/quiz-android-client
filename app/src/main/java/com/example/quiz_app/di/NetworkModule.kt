@@ -1,5 +1,6 @@
 package com.example.quiz_app.di
 
+import com.example.quiz_app.BuildConfig
 import com.example.quiz_app.data.remote.QuizApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -18,7 +19,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    private const val BASE_URL = "https://api.example.com/" // TODO: Replace with actual backend URL
+    private val BASE_URL = BuildConfig.API_BASE_URL
     
     @Provides
     @Singleton

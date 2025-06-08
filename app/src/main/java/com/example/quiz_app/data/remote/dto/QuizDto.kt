@@ -8,46 +8,44 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 data class QuizDto(
     @Json(name = "id")
-    val id: String,
-    @Json(name = "title")
-    val title: String,
-    @Json(name = "description")
-    val description: String,
+    val id: Int,
+    @Json(name = "qid")
+    val qid: String,
+    @Json(name = "chapter")
+    val chapter: String,
+    @Json(name = "category")
+    val category: String,
     @Json(name = "difficulty")
     val difficulty: String,
-    @Json(name = "category_id")
-    val categoryId: String,
-    @Json(name = "category_name")
-    val categoryName: String,
-    @Json(name = "question_count")
-    val questionCount: Int,
-    @Json(name = "time_limit")
-    val timeLimit: Int?,
-    @Json(name = "image_url")
-    val imageUrl: String?,
-    @Json(name = "created_at")
-    val createdAt: String,
-    @Json(name = "updated_at")
-    val updatedAt: String
+    @Json(name = "choices")
+    val choices: List<String>,
+    @Json(name = "code")
+    val code: String?,
+    @Json(name = "questionText")
+    val questionText: String,
+    @Json(name = "explanation")
+    val explanation: String,
+    @Json(name = "questionCategory")
+    val questionCategory: String
 )
 
 fun QuizDto.toDomain(): Quiz {
     return Quiz(
-        id = id,
-        title = title,
-        description = description,
-        difficulty = when (difficulty.lowercase()) {
-            "beginner" -> QuizDifficulty.BEGINNER
-            "intermediate" -> QuizDifficulty.INTERMEDIATE
-            "advanced" -> QuizDifficulty.ADVANCED
+        id = id.toString(),
+        title = "$chapter - $category",
+        description = questionText,
+        difficulty = when (difficulty) {
+            "初級" -> QuizDifficulty.BEGINNER
+            "中級" -> QuizDifficulty.INTERMEDIATE
+            "上級" -> QuizDifficulty.ADVANCED
             else -> QuizDifficulty.BEGINNER
         },
-        categoryId = categoryId,
-        categoryName = categoryName,
-        questionCount = questionCount,
-        timeLimit = timeLimit,
-        imageUrl = imageUrl,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        categoryId = qid,
+        categoryName = category,
+        questionCount = choices.size,
+        timeLimit = null,
+        imageUrl = null,
+        createdAt = "",
+        updatedAt = ""
     )
 }

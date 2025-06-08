@@ -37,10 +37,12 @@ out/
 .vscode/
 
 
-### cursor ###
+### その他不要ファイル ###
 .cursor
 memory-bank
 todo1.html
 記事用
 quiz-api
 123
+quiz-app-contentful
+.claude
