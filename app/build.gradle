@@ -92,6 +92,9 @@ dependencies {
     // Coil
     implementation libs.coil.compose
     
+    // Security
+    implementation libs.androidx.security.crypto
+    
     // Room
     implementation libs.room.runtime
     implementation libs.room.ktx
