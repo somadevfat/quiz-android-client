@@ -242,3 +242,89 @@ webでドキュメントを参照して実装前に確認。
 - **依存ライブラリのスキャン:**
     - **OWASP Dependency-Check** や **Snyk** などのツールをCI/CDに組み込み、利用しているライブラリに既知の脆弱性 (CVE) がないか定期的にスキャンします。
     - 脆弱性が発見された場合は、速やかにライブラリのバージョンアップや代替ライブラリへの移行を検討します。
+
+
+---
+
+# IMPLEMENT MODE - Android Kotlin Jetpack Compose
+
+## モード概要
+**IMPLEMENT MODE**: テスト駆動開発によりテスト完了後に本実装を行うモード
+
+## 実行フェーズ
+
+### PHASE 1: TEST DEVELOPMENT
+```bash
+# 1. テスト作成
+cat > app/src/test/java/com/example/[Feature]Test.kt << 'EOF'
+@Test
+fun test[Feature]() {
+    // テストケース実装
+}
+EOF
+
+# 2. テスト実行（失敗確認）
+./gradlew testDebugUnitTest --tests="*[Feature]Test*"
+# EXPECTED: テスト失敗（実装前なので）
+```
+
+### PHASE 2: TEST VALIDATION
+```bash
+# 構文チェック
+kotlinc -classpath $ANDROID_HOME/platforms/android-XX/android.jar [Feature]Test.kt
+
+# テスト実行ログ
+./gradlew testDebugUnitTest --tests="*[Feature]Test*" --info
+```
+
+### PHASE 3: IMPLEMENTATION
+**条件**: テストが完全に作成され、実行可能な状態であること
+
+```bash
+# 1. 実装作成
+cat > app/src/main/java/com/example/[Feature].kt << 'EOF'
+@Composable
+fun [Feature]() {
+    // 実装
+}
+EOF
+
+# 2. 実装テスト
+./gradlew testDebugUnitTest --tests="*[Feature]Test*"
+# EXPECTED: テスト成功
+
+# 3. 統合テスト
+./gradlew connectedDebugAndroidTest
+```
+
+## 実行ルール
+
+### ✅ MUST DO
+- [ ] テストを先に作成
+- [ ] テストが失敗することを確認
+- [ ] 実装後にテストが成功することを確認
+- [ ] 各フェーズの実行結果を報告
+
+### ❌ PROHIBITED
+- テストなしでの実装
+- 推測での進行
+- 実行結果の省略
+
+## 実行ログテンプレート
+```
+PHASE 1 - TEST DEVELOPMENT:
+$ ./gradlew test...
+RESULT: ❌ FAILED (expected)
+REASON: Implementation not found
+
+PHASE 2 - TEST VALIDATION:  
+$ kotlinc ...
+RESULT: ✅ SYNTAX OK
+
+PHASE 3 - IMPLEMENTATION:
+$ ./gradlew test...
+RESULT: ✅ ALL TESTS PASSED
+STATUS: 🚀 READY FOR PRODUCTION
+```
+
+**IMPLEMENT MODE ACTIVE - テスト完了まで実装禁止**
