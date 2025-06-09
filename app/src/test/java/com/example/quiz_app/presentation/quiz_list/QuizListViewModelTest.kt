@@ -167,7 +167,7 @@ class QuizListViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertFalse(state.isLoading)
-            assertEquals(4, state.quizzes.size) // FakeRepository has 4 quizzes
+            assertEquals(54, state.quizzes.size) // FakeRepository has 54 quizzes
             assertNull(state.errorMessage)
             
             // Verify first quiz data
