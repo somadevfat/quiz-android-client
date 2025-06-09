@@ -8,15 +8,21 @@ import com.example.quiz_app.domain.Question
 import com.example.quiz_app.domain.QuizSessionManager
 import com.example.quiz_app.domain.QuizSessionSettings
 import com.example.quiz_app.domain.SessionState
+import com.example.quiz_app.di.EnableTimer
+import com.example.quiz_app.di.MainDispatcher
 import com.example.quiz_app.domain.TimerUpdate
 import com.example.quiz_app.domain.repository.QuizRepository
 import com.example.quiz_app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,7 +30,9 @@ import javax.inject.Inject
 @HiltViewModel
 class QuizViewModel @Inject constructor(
     private val quizRepository: QuizRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @MainDispatcher private val dispatcher: CoroutineDispatcher,
+    @EnableTimer private val enableTimer: Boolean
 ) : ViewModel() {
 
     private val sessionManager = QuizSessionManager()
@@ -37,13 +45,16 @@ class QuizViewModel @Inject constructor(
     val remainingTime = sessionManager.remainingTime
     val totalElapsedTime = sessionManager.totalElapsedTime
     
+    // タイマージョブ管理
+    private var timerJob: Job? = null
+    
     init {
-        startTimerJob()
         observeSessionChanges()
+        // タイマーはセッション開始時に開始する
     }
 
     fun loadQuiz(quizId: String, sessionSettings: QuizSessionSettings = QuizSessionSettings()) {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
             quizRepository.getQuizDetail(quizId)
@@ -66,6 +77,9 @@ class QuizViewModel @Inject constructor(
                         // Check bookmark status for initial question
                         val firstQuestion = questions.getOrNull(session.currentQuestionIndex)
                         firstQuestion?.let { checkBookmarkStatus(it.id) }
+                        
+                        // セッション開始時にタイマー開始
+                        startTimerJob()
                     }.onFailure { error ->
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
@@ -201,6 +215,7 @@ class QuizViewModel @Inject constructor(
     }
     
     fun resetQuiz() {
+        stopTimerJob()
         sessionManager.resetSession()
         _uiState.value = QuizUiState()
     }
@@ -209,7 +224,7 @@ class QuizViewModel @Inject constructor(
         val currentQuestion = getCurrentQuestion() ?: return
         val currentState = _uiState.value
         
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             if (currentState.isCurrentQuestionBookmarked) {
                 userRepository.removeBookmark(currentQuestion.id)
                     .onSuccess {
@@ -232,7 +247,7 @@ class QuizViewModel @Inject constructor(
     }
     
     private fun checkBookmarkStatus(questionId: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             userRepository.isBookmarked(questionId).collect { isBookmarked ->
                 _uiState.value = _uiState.value.copy(
                     isCurrentQuestionBookmarked = isBookmarked
@@ -247,37 +262,46 @@ class QuizViewModel @Inject constructor(
     }
     
     private fun startTimerJob() {
-        viewModelScope.launch {
-            while (isActive) {
-                val timerUpdate = sessionManager.updateTimer()
-                
-                when (timerUpdate) {
-                    TimerUpdate.TIME_UP -> {
-                        // 時間切れ - 自動で次の問題に進むかタイムアウト処理
-                        if (_uiState.value.sessionSettings.autoAdvance) {
-                            nextQuestion()
-                        } else {
-                            _uiState.value = _uiState.value.copy(
-                                isTimeUp = true
-                            )
+        if (!enableTimer) return // タイマーが無効なら何もしない
+        stopTimerJob()
+        timerJob = viewModelScope.launch(dispatcher) {
+            sessionManager.timerFlow()
+                .collect { timerUpdate ->
+                    when (timerUpdate) {
+                        TimerUpdate.TIME_UP -> {
+                            // 時間切れ - 自動で次の問題に進むかタイムアウト処理
+                            if (_uiState.value.sessionSettings.autoAdvance) {
+                                nextQuestion()
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    isTimeUp = true
+                                )
+                            }
+                        }
+                        TimerUpdate.UPDATED -> {
+                            // 通常のタイマー更新 - UIStateは自動更新される
+                        }
+                        TimerUpdate.SESSION_PAUSED,
+                        TimerUpdate.NO_SESSION -> {
+                            // セッションが無いか一時停止中 - 何もしない
                         }
                     }
-                    TimerUpdate.UPDATED -> {
-                        // 通常のタイマー更新 - UIStateは自動更新される
-                    }
-                    TimerUpdate.SESSION_PAUSED,
-                    TimerUpdate.NO_SESSION -> {
-                        // セッションが無いか一時停止中 - 何もしない
-                    }
                 }
-                
-                delay(1000) // 1秒間隔
-            }
         }
     }
     
+    private fun stopTimerJob() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        stopTimerJob()
+    }
+    
     private fun observeSessionChanges() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             combine(
                 sessionManager.currentSession,
                 sessionManager.remainingTime,

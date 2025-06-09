@@ -25,7 +25,7 @@ class AuthViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeAuthRepository = FakeAuthRepository()
-        authViewModel = AuthViewModel(fakeAuthRepository)
+        authViewModel = AuthViewModel(fakeAuthRepository, testDispatcher)
     }
 
     @AfterEach

@@ -76,7 +76,7 @@ class QuizE2EIntegrationTest {
         }
 
         // When: ViewModel is created
-        val viewModel = QuizListViewModel(successRepository)
+        val viewModel = QuizListViewModel(successRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then: UI state should contain the quiz
@@ -102,7 +102,7 @@ class QuizE2EIntegrationTest {
         val mockUserRepository = createMockUserRepository()
         
         // When: QuizViewModel tries to load quiz
-        val quizViewModel = QuizViewModel(errorRepository, mockUserRepository)
+        val quizViewModel = QuizViewModel(errorRepository, mockUserRepository, testDispatcher, enableTimer = false)
         quizViewModel.loadQuiz("invalid-id")
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -128,7 +128,7 @@ class QuizE2EIntegrationTest {
         val mockUserRepository = createMockUserRepository()
         
         // When: QuizViewModel loads and processes quiz
-        val quizViewModel = QuizViewModel(completeRepository, mockUserRepository)
+        val quizViewModel = QuizViewModel(completeRepository, mockUserRepository, testDispatcher, enableTimer = false)
         
         // Step 1: Load quiz
         quizViewModel.loadQuiz("1")
@@ -194,7 +194,7 @@ class QuizE2EIntegrationTest {
         val mockUserRepository = createMockUserRepository()
 
         // When: QuizViewModel manages session state
-        val quizViewModel = QuizViewModel(repository, mockUserRepository)
+        val quizViewModel = QuizViewModel(repository, mockUserRepository, testDispatcher, enableTimer = false)
         quizViewModel.loadQuiz("1")
         testDispatcher.scheduler.advanceUntilIdle()
 

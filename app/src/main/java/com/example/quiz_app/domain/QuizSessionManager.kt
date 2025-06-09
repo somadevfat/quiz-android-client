@@ -3,6 +3,9 @@ package com.example.quiz_app.domain
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -20,6 +23,16 @@ class QuizSessionManager {
     
     private var _totalElapsedTime = MutableStateFlow(0L) // seconds
     val totalElapsedTime: StateFlow<Long> = _totalElapsedTime.asStateFlow()
+    
+    /**
+     * タイマーの更新をFlowとして提供
+     */
+    fun timerFlow(): Flow<TimerUpdate> = flow {
+        while (true) {
+            emit(updateTimer())
+            delay(1000)
+        }
+    }
     
     /**
      * 新しいクイズセッションを開始

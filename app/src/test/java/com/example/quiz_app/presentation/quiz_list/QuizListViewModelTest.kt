@@ -73,7 +73,7 @@ class QuizListViewModelTest {
         whenever(mockRepository.getQuizzes()).thenReturn(flowOf(sampleQuizzes))
         
         // When
-        viewModel = QuizListViewModel(mockRepository)
+        viewModel = QuizListViewModel(mockRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
@@ -96,7 +96,7 @@ class QuizListViewModelTest {
         whenever(mockRepository.getQuizzes()).thenReturn(errorFlow)
         
         // When
-        viewModel = QuizListViewModel(mockRepository)
+        viewModel = QuizListViewModel(mockRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
@@ -120,7 +120,7 @@ class QuizListViewModelTest {
             .thenReturn(errorFlow)
             .thenReturn(successFlow)
         
-        viewModel = QuizListViewModel(mockRepository)
+        viewModel = QuizListViewModel(mockRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // When - call retry
@@ -142,7 +142,7 @@ class QuizListViewModelTest {
         whenever(mockRepository.getQuizzes()).thenReturn(flowOf(emptyList()))
         
         // When
-        viewModel = QuizListViewModel(mockRepository)
+        viewModel = QuizListViewModel(mockRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
@@ -160,7 +160,7 @@ class QuizListViewModelTest {
         val fakeRepository = FakeQuizRepository()
         
         // When
-        viewModel = QuizListViewModel(fakeRepository)
+        viewModel = QuizListViewModel(fakeRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then
