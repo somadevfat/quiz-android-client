@@ -2,6 +2,7 @@ package com.example.quiz_app.data.repository
 
 import com.example.quiz_app.domain.Quiz
 import com.example.quiz_app.domain.QuizDifficulty
+import com.example.quiz_app.domain.Question
 import com.example.quiz_app.domain.repository.QuizRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -70,8 +71,80 @@ class FakeQuizRepository @Inject constructor() : QuizRepository {
         return flowOf(sampleQuizzes)
     }
     
-    override fun getQuizById(id: String): Flow<Quiz?> {
+    override suspend fun getQuizById(id: String): Result<Quiz> {
         val quiz = sampleQuizzes.find { it.id == id }
-        return flowOf(quiz)
+        return if(quiz != null) Result.success(quiz) else Result.failure(Exception("Not found"))
+    }
+
+    override suspend fun searchQuizzes(query: String): Result<List<Quiz>> {
+        return Result.success(sampleQuizzes.filter { it.title.contains(query, true) })
+    }
+
+    override suspend fun getQuizzesByCategory(categoryId: String): Result<List<Quiz>> {
+        return Result.success(sampleQuizzes.filter { it.categoryId == categoryId })
+    }
+
+    override suspend fun getQuizDetail(quizId: String): Result<List<Question>> {
+        val questions = when (quizId) {
+            "1" -> listOf(
+                Question(
+                    id = "q1",
+                    questionText = "Kotlinで変数を宣言するキーワードはどれ？",
+                    options = listOf("var", "let", "const", "def"),
+                    correctAnswerIndex = 0,
+                    explanation = "Kotlinでは、変更可能な変数は`var`、変更不可能な変数は`val`を使用して宣言します。"
+                ),
+                Question(
+                    id = "q2",
+                    questionText = "AndroidでUIを構築するための現在推奨されているツールキットは？",
+                    options = listOf("XML Layout", "Jetpack Compose", "React Native", "Flutter"),
+                    correctAnswerIndex = 1,
+                    explanation = "Jetpack ComposeはAndroidの現代的なUIツールキットで、宣言的UIの作成を可能にします。"
+                ),
+                Question(
+                    id = "q3",
+                    questionText = "Activityのライフサイクルメソッドの正しい順序は？",
+                    options = listOf(
+                        "onCreate → onStart → onResume",
+                        "onStart → onCreate → onResume",
+                        "onResume → onCreate → onStart",
+                        "onCreate → onResume → onStart"
+                    ),
+                    correctAnswerIndex = 0,
+                    explanation = "Activityのライフサイクルは onCreate() → onStart() → onResume() の順序で実行されます。"
+                )
+            )
+            "2" -> listOf(
+                Question(
+                    id = "q4",
+                    questionText = "Kotlinのcoroutinesで非同期処理を開始するために使用する関数は？",
+                    options = listOf("async", "launch", "runBlocking", "withContext"),
+                    correctAnswerIndex = 1,
+                    explanation = "launch{}はfire-and-forget型の非同期処理を開始するために使用されます。"
+                ),
+                Question(
+                    id = "q5",
+                    questionText = "sealed classの主な用途は？",
+                    options = listOf(
+                        "継承の制限",
+                        "型安全な状態管理", 
+                        "enumの拡張版",
+                        "上記すべて"
+                    ),
+                    correctAnswerIndex = 3,
+                    explanation = "sealed classは継承を制限し、型安全な状態管理を可能にし、enumの機能を拡張したものです。"
+                )
+            )
+            else -> listOf(
+                Question(
+                    id = "q_default",
+                    questionText = "この問題はサンプル問題です。",
+                    options = listOf("選択肢A", "選択肢B", "選択肢C", "選択肢D"),
+                    correctAnswerIndex = 0,
+                    explanation = "これはサンプルの解説です。"
+                )
+            )
+        }
+        return Result.success(questions)
     }
 }

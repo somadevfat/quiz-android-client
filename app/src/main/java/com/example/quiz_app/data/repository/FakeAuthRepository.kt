@@ -40,6 +40,12 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
         return try {
             _authState.value = AuthState.Loading
             
+            // Check if error simulation is enabled
+            if (simulateError) {
+                _authState.value = AuthState.Error("ネットワークエラー")
+                return Result.failure(Exception("ネットワークエラー"))
+            }
+            
             // Simulate authentication logic
             when {
                 username.isEmpty() || password.isEmpty() -> {
@@ -141,6 +147,8 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
     }
 
     // Test helper methods
+    private var simulateError = false
+    
     fun simulateLoggedInUser() {
         val user = fakeUsers["testuser"]!!
         currentUser = user
@@ -151,4 +159,16 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
         currentUser = null
         _authState.value = AuthState.Unauthenticated
     }
+    
+    fun simulateNetworkError() {
+        simulateError = true
+        _authState.value = AuthState.Error("ネットワークエラー")
+    }
+    
+    fun resetErrorSimulation() {
+        simulateError = false
+    }
+    
+    // Make authStateFlow public for testing  
+    fun getAuthStateFlow() = _authState
 }

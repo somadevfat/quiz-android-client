@@ -21,55 +21,76 @@ import com.example.quiz_app.ui.theme.QuizAppTheme
 @Composable
 fun QuizListScreen(
     modifier: Modifier = Modifier,
+    onStartQuiz: (String) -> Unit = {},
+    onLogout: () -> Unit = {},
     viewModel: QuizListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Quiz Library",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Quiz Library",
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                actions = {
+                    TextButton(onClick = onLogout) {
+                        Text(
+                            text = "ログアウト",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                uiState.errorMessage != null -> {
+                    ErrorState(
+                        message = uiState.errorMessage!!,
+                        onRetry = { viewModel.retry() },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
-            }
-            
-            uiState.errorMessage != null -> {
-                ErrorState(
-                    message = uiState.errorMessage!!,
-                    onRetry = { viewModel.retry() },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            
-            else -> {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(
-                        items = uiState.quizzes,
-                        key = { quiz -> quiz.id }
-                    ) { quiz ->
-                        QuizCard(
-                            quiz = quiz,
-                            onClick = { /* TODO: Navigate to quiz detail */ }
-                        )
+                
+                else -> {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = uiState.quizzes,
+                            key = { quiz -> quiz.id }
+                        ) { quiz ->
+                            QuizCard(
+                                quiz = quiz,
+                                onClick = { onStartQuiz(quiz.id) }
+                            )
+                        }
                     }
                 }
             }

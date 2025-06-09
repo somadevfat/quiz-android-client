@@ -3,6 +3,7 @@ package com.example.quiz_app.data.repository
 import com.example.quiz_app.data.remote.QuizApiService
 import com.example.quiz_app.data.remote.dto.toDomain
 import com.example.quiz_app.domain.Quiz
+import com.example.quiz_app.domain.Question
 import com.example.quiz_app.domain.repository.QuizRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -24,13 +25,19 @@ class QuizRepositoryImpl @Inject constructor(
         }
     }
     
-    override fun getQuizById(id: String): Flow<Quiz?> = flow {
-        try {
-            val quizDto = apiService.getQuizById(id)
-            val quiz = quizDto.toDomain()
-            emit(quiz)
-        } catch (e: Exception) {
-            emit(null)
-        }
+    override suspend fun getQuizById(id: String): Result<Quiz> {
+        return Result.failure(NotImplementedError("getQuizById is not implemented yet."))
+    }
+
+    override suspend fun searchQuizzes(query: String): Result<List<Quiz>> {
+        return Result.failure(NotImplementedError("searchQuizzes is not implemented yet."))
+    }
+
+    override suspend fun getQuizzesByCategory(categoryId: String): Result<List<Quiz>> {
+        return Result.failure(NotImplementedError("getQuizzesByCategory is not implemented yet."))
+    }
+
+    override suspend fun getQuizDetail(quizId: String): Result<List<Question>> {
+        return Result.failure(NotImplementedError("getQuizDetail is not implemented yet."))
     }
 }

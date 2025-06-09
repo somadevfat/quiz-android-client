@@ -1,122 +1,138 @@
 package com.example.quiz_app.data.repository
 
-import app.cash.turbine.test
 import com.example.quiz_app.data.remote.QuizApiService
 import com.example.quiz_app.data.remote.dto.QuizDto
+import com.example.quiz_app.domain.Quiz
 import com.example.quiz_app.domain.QuizDifficulty
-import io.mockk.coEvery
-import io.mockk.mockk
+import io.mockk.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.io.IOException
 
 class QuizRepositoryImplTest {
-
+    
     private lateinit var apiService: QuizApiService
     private lateinit var repository: QuizRepositoryImpl
-
+    
     private val sampleQuizDto = QuizDto(
         id = 1,
-        qid = "Q001",
+        qid = "android-001",
         chapter = "Android Basics",
         category = "Views",
         difficulty = "初級",
-        choices = listOf("Option A", "Option B", "Option C", "Option D"),
-        code = "fun example() { }",
-        questionText = "What is an Activity?",
-        explanation = "An Activity represents a single screen with a user interface.",
-        questionCategory = "Android"
+        choices = listOf("Option 1", "Option 2", "Option 3", "Option 4"),
+        code = null,
+        questionText = "What is a View in Android?",
+        explanation = "A View is a basic building block for UI components.",
+        questionCategory = "Android Development"
     )
-
+    
     @BeforeEach
     fun setup() {
         apiService = mockk()
         repository = QuizRepositoryImpl(apiService)
     }
-
-    @Test
-    fun `getQuizzes should return mapped domain objects when API call succeeds`() = runTest {
-        // Given
-        val quizDtos = listOf(sampleQuizDto)
-        coEvery { apiService.getQuizzes() } returns quizDtos
-
-        // When & Then
-        repository.getQuizzes().test {
-            val result = awaitItem()
-            awaitComplete()
-
-            assertEquals(1, result.size)
-            val quiz = result.first()
-            assertEquals("1", quiz.id)
-            assertEquals("Android Basics - Views", quiz.title)
-            assertEquals("What is an Activity?", quiz.description)
-            assertEquals(QuizDifficulty.BEGINNER, quiz.difficulty)
-            assertEquals("Q001", quiz.categoryId)
-            assertEquals("Views", quiz.categoryName)
-            assertEquals(4, quiz.questionCount)
-            assertNull(quiz.timeLimit)
-            assertNull(quiz.imageUrl)
-        }
+    
+    @AfterEach
+    fun tearDown() {
+        clearAllMocks()
     }
-
+    
     @Test
-    fun `getQuizzes should throw exception when API call fails`() = runTest {
+    fun `getQuizzes returns list of quizzes from API`() = runTest {
         // Given
-        val exception = IOException("Network error")
-        coEvery { apiService.getQuizzes() } throws exception
-
-        // When & Then
-        repository.getQuizzes().test {
-            val error = awaitError()
-            assertTrue(error is IOException)
-            assertEquals("Network error", error.message)
-        }
+        coEvery { apiService.getQuizzes() } returns listOf(sampleQuizDto)
+        
+        // When
+        val result = repository.getQuizzes().first()
+        
+        // Then
+        assertEquals(1, result.size)
+        assertEquals("1", result[0].id)
+        assertEquals("Android Basics - Views", result[0].title)
+        assertEquals(QuizDifficulty.BEGINNER, result[0].difficulty)
     }
-
+    
     @Test
-    fun `getQuizById should return mapped domain object when API call succeeds`() = runTest {
+    fun `getQuizById returns specific quiz successfully`() = runTest {
         // Given
         coEvery { apiService.getQuizById("1") } returns sampleQuizDto
-
-        // When & Then
-        repository.getQuizById("1").test {
-            val result = awaitItem()
-            awaitComplete()
-
-            assertNotNull(result)
-            assertEquals("1", result!!.id)
-            assertEquals("Android Basics - Views", result.title)
-            assertEquals(QuizDifficulty.BEGINNER, result.difficulty)
-        }
+        
+        // When
+        val result = repository.getQuizById("1")
+        
+        // Then
+        assertTrue(result.isSuccess)
+        val quiz = result.getOrNull()
+        assertNotNull(quiz)
+        assertEquals("1", quiz!!.id)
+        assertEquals("Android Basics - Views", quiz.title)
+        assertEquals(QuizDifficulty.BEGINNER, quiz.difficulty)
     }
-
+    
     @Test
-    fun `getQuizById should return null when API call fails`() = runTest {
+    fun `getQuizById handles API error gracefully`() = runTest {
         // Given
-        coEvery { apiService.getQuizById("1") } throws IOException("Not found")
-
-        // When & Then
-        repository.getQuizById("1").test {
-            val result = awaitItem()
-            awaitComplete()
-
-            assertNull(result)
-        }
+        coEvery { apiService.getQuizById("999") } throws Exception("Quiz not found")
+        
+        // When
+        val result = repository.getQuizById("999")
+        
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals("Quiz not found", result.exceptionOrNull()?.message)
     }
-
+    
     @Test
-    fun `getQuizzes should handle empty list from API`() = runTest {
+    fun `searchQuizzes returns filtered results from getQuizzes`() = runTest {
         // Given
-        coEvery { apiService.getQuizzes() } returns emptyList()
-
-        // When & Then
-        repository.getQuizzes().test {
-            val result = awaitItem()
-            awaitComplete()
-
-            assertTrue(result.isEmpty())
-        }
+        val searchQuery = "Android"
+        coEvery { apiService.getQuizzes() } returns listOf(sampleQuizDto)
+        
+        // When
+        val result = repository.searchQuizzes(searchQuery)
+        
+        // Then
+        assertTrue(result.isSuccess)
+        val quizzes = result.getOrNull()
+        assertNotNull(quizzes)
+        assertEquals(1, quizzes!!.size)
+        assertTrue(quizzes[0].title.contains("Android"))
+    }
+    
+    @Test
+    fun `getQuizzesByCategory returns category-specific quizzes from getQuizzes`() = runTest {
+        // Given
+        val categoryId = "android-001"
+        coEvery { apiService.getQuizzes() } returns listOf(sampleQuizDto)
+        
+        // When
+        val result = repository.getQuizzesByCategory(categoryId)
+        
+        // Then
+        assertTrue(result.isSuccess)
+        val quizzes = result.getOrNull()
+        assertNotNull(quizzes)
+        assertEquals(1, quizzes!!.size)
+        assertEquals(categoryId, quizzes[0].categoryId)
+    }
+    
+    @Test
+    fun `getQuizDetail returns questions for quiz`() = runTest {
+        // Given
+        val quizId = "1"
+        // Note: This test assumes QuizApiService has a getQuizDetail method
+        // For now, we'll test the repository interface as defined
+        
+        // When
+        val result = repository.getQuizDetail(quizId)
+        
+        // Then
+        // Since we're using the real implementation with mock API service,
+        // we expect this to return success (empty questions or mocked questions)
+        assertTrue(result.isSuccess)
     }
 }

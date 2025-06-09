@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
+    onNavigateToQuizList: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel()
@@ -41,7 +42,7 @@ fun LoginScreen(
     // Navigate on successful login
     LaunchedEffect(loginUiState.isLoginSuccessful) {
         if (loginUiState.isLoginSuccessful) {
-            onLoginSuccess()
+            onNavigateToQuizList()
         }
     }
 
