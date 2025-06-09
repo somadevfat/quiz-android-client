@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.quiz_app.domain.AuthState
 import com.example.quiz_app.domain.User
 import com.example.quiz_app.domain.repository.AuthRepository
+import com.example.quiz_app.di.IoDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,8 @@ data class RegisterUiState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _loginUiState = MutableStateFlow(LoginUiState())
@@ -47,7 +50,7 @@ class AuthViewModel @Inject constructor(
 
     init {
         // Monitor auth state changes from repository
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             authRepository.authState.collectLatest { state ->
                 _authState.value = state
                 
@@ -88,7 +91,7 @@ class AuthViewModel @Inject constructor(
             return
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             _loginUiState.value = currentState.copy(
                 isLoading = true,
                 errorMessage = null,
@@ -151,7 +154,7 @@ class AuthViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             _registerUiState.value = currentState.copy(
                 isLoading = true,
                 errorMessage = null,
@@ -175,7 +178,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             authRepository.logout()
             // Reset UI states
             clearLoginForm()

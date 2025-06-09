@@ -26,18 +26,56 @@ class QuizRepositoryImpl @Inject constructor(
     }
     
     override suspend fun getQuizById(id: String): Result<Quiz> {
-        return Result.failure(NotImplementedError("getQuizById is not implemented yet."))
+        return try {
+            val quizDto = apiService.getQuizById(id)
+            Result.success(quizDto.toDomain())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun searchQuizzes(query: String): Result<List<Quiz>> {
-        return Result.failure(NotImplementedError("searchQuizzes is not implemented yet."))
+        return try {
+            val quizDtos = apiService.getQuizzes()
+            val allQuizzes = quizDtos.map { it.toDomain() }
+            val filteredQuizzes = allQuizzes.filter { quiz ->
+                quiz.title.contains(query, ignoreCase = true) ||
+                quiz.description.contains(query, ignoreCase = true) ||
+                quiz.categoryName.contains(query, ignoreCase = true)
+            }
+            Result.success(filteredQuizzes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun getQuizzesByCategory(categoryId: String): Result<List<Quiz>> {
-        return Result.failure(NotImplementedError("getQuizzesByCategory is not implemented yet."))
+        return try {
+            val quizDtos = apiService.getQuizzes()
+            val allQuizzes = quizDtos.map { it.toDomain() }
+            val categoryQuizzes = allQuizzes.filter { quiz ->
+                quiz.categoryId == categoryId
+            }
+            Result.success(categoryQuizzes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun getQuizDetail(quizId: String): Result<List<Question>> {
-        return Result.failure(NotImplementedError("getQuizDetail is not implemented yet."))
+        return try {
+            val quizDto = apiService.getQuizById(quizId)
+            // Convert QuizDto to Question list (one question per quiz for now)
+            val question = Question(
+                id = "q_${quizDto.id}",
+                questionText = quizDto.questionText,
+                options = quizDto.choices,
+                correctAnswerIndex = 1, // Assuming index 1 for now
+                explanation = quizDto.explanation
+            )
+            Result.success(listOf(question))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

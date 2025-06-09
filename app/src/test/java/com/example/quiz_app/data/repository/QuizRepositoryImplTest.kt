@@ -124,15 +124,17 @@ class QuizRepositoryImplTest {
     fun `getQuizDetail returns questions for quiz`() = runTest {
         // Given
         val quizId = "1"
-        // Note: This test assumes QuizApiService has a getQuizDetail method
-        // For now, we'll test the repository interface as defined
+        coEvery { apiService.getQuizById(quizId) } returns sampleQuizDto
         
         // When
         val result = repository.getQuizDetail(quizId)
         
         // Then
-        // Since we're using the real implementation with mock API service,
-        // we expect this to return success (empty questions or mocked questions)
         assertTrue(result.isSuccess)
+        val questions = result.getOrNull()
+        assertNotNull(questions)
+        assertEquals(1, questions!!.size)
+        assertEquals("q_1", questions[0].id)
+        assertEquals("What is a View in Android?", questions[0].questionText)
     }
 }

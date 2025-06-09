@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.quiz_app.domain.Quiz
 import com.example.quiz_app.domain.repository.QuizRepository
+import com.example.quiz_app.di.IoDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +22,8 @@ data class QuizListUiState(
 
 @HiltViewModel
 class QuizListViewModel @Inject constructor(
-    private val quizRepository: QuizRepository
+    private val quizRepository: QuizRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(QuizListUiState())
@@ -31,7 +34,7 @@ class QuizListViewModel @Inject constructor(
     }
     
     private fun loadQuizzes() {
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             
             quizRepository.getQuizzes()

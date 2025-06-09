@@ -25,7 +25,7 @@ class AuthViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeAuthRepository = FakeAuthRepository()
-        authViewModel = AuthViewModel(fakeAuthRepository)
+        authViewModel = AuthViewModel(fakeAuthRepository, testDispatcher)
     }
 
     @AfterEach
@@ -220,11 +220,19 @@ class AuthViewModelTest {
         
         authViewModel.authState.test {
             // Initial state should be unauthenticated
-            val initialState = awaitItem()
+            var initialState = awaitItem()
+            if (initialState is AuthState.Loading) {
+                initialState = awaitItem() // Consume Unauthenticated if Loading was first
+            }
             assertTrue(initialState is AuthState.Unauthenticated)
             
             // Perform login
             authViewModel.login()
+            
+            // The state should first transition to Loading
+            val loadingState = awaitItem()
+            assertTrue(loadingState is AuthState.Loading)
+
             testDispatcher.scheduler.advanceUntilIdle()
             
             // Wait for authenticated state

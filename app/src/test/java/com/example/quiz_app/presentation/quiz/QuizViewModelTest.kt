@@ -2,8 +2,12 @@ package com.example.quiz_app.presentation.quiz
 
 import com.example.quiz_app.domain.Question
 import com.example.quiz_app.domain.repository.QuizRepository
+import com.example.quiz_app.domain.repository.UserRepository
 import com.example.quiz_app.domain.Quiz
 import com.example.quiz_app.domain.QuizDifficulty
+import com.example.quiz_app.domain.Bookmark
+import com.example.quiz_app.domain.LearningHistory
+import com.example.quiz_app.domain.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +24,7 @@ class QuizViewModelTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var testScope: TestScope
     private lateinit var mockRepository: QuizRepository
+    private lateinit var mockUserRepository: UserRepository
     private lateinit var viewModel: QuizViewModel
 
     private val sampleQuestions = listOf(
@@ -57,7 +62,37 @@ class QuizViewModelTest {
             override suspend fun getQuizDetail(quizId: String): Result<List<Question>> = Result.success(sampleQuestions)
         }
         
-        viewModel = QuizViewModel(mockRepository)
+        mockUserRepository = object : UserRepository {
+            override fun getBookmarks(): Flow<List<Bookmark>> = flowOf(emptyList())
+            override suspend fun addBookmark(questionId: String, quizId: String, notes: String?): Result<Unit> = Result.success(Unit)
+            override suspend fun removeBookmark(questionId: String): Result<Unit> = Result.success(Unit)
+            override fun isBookmarked(questionId: String): Flow<Boolean> = flowOf(false)
+            override suspend fun getBookmarkFolders(): Result<List<BookmarkFolder>> = Result.failure(NotImplementedError())
+            override suspend fun createBookmarkFolder(name: String, description: String?): Result<BookmarkFolder> = Result.failure(NotImplementedError())
+            override suspend fun addToFolder(bookmarkId: String, folderId: String): Result<Unit> = Result.failure(NotImplementedError())
+            override fun getLearningHistory(): Flow<List<LearningHistory>> = flowOf(emptyList())
+            override suspend fun addLearningRecord(record: LearningHistory): Result<Unit> = Result.success(Unit)
+            override suspend fun getQuizSessions(): Result<List<QuizSession>> = Result.success(emptyList())
+            override suspend fun startQuizSession(quizId: String, quizTitle: String): Result<QuizSession> = Result.failure(NotImplementedError())
+            override suspend fun updateQuizSession(session: QuizSession): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun completeQuizSession(sessionId: String, answers: List<SessionAnswer>): Result<QuizSession> = Result.failure(NotImplementedError())
+            override suspend fun getLearningStatistics(): Result<LearningStatistics> = Result.failure(NotImplementedError())
+            override suspend fun getCategoryStatistics(): Result<Map<String, CategoryStatistics>> = Result.failure(NotImplementedError())
+            override suspend fun getDifficultyStatistics(): Result<Map<QuizDifficulty, DifficultyStatistics>> = Result.failure(NotImplementedError())
+            override suspend fun getMonthlyProgress(): Result<List<MonthlyProgress>> = Result.failure(NotImplementedError())
+            override suspend fun getWeeklyProgress(): Result<List<WeeklyProgress>> = Result.failure(NotImplementedError())
+            override suspend fun getDailyStats(date: String): Result<DailyLearningStats> = Result.failure(NotImplementedError())
+            override suspend fun getAchievements(): Result<List<Achievement>> = Result.failure(NotImplementedError())
+            override suspend fun unlockAchievement(achievementId: String): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getPerformanceAnalysis(): Result<PerformanceAnalysis> = Result.failure(NotImplementedError())
+            override suspend fun saveSearch(search: SavedSearch): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getSavedSearches(): Result<List<SavedSearch>> = Result.failure(NotImplementedError())
+            override suspend fun getFilterOptions(): Result<FilterOptions> = Result.failure(NotImplementedError())
+            override suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getUserPreferences(): Result<Map<String, Any>> = Result.failure(NotImplementedError())
+        }
+        
+        viewModel = QuizViewModel(mockRepository, mockUserRepository)
     }
 
     @AfterEach
@@ -100,7 +135,7 @@ class QuizViewModelTest {
             override suspend fun getQuizDetail(quizId: String): Result<List<Question>> = Result.failure(RuntimeException("Quiz not found"))
         }
         
-        val errorViewModel = QuizViewModel(errorRepository)
+        val errorViewModel = QuizViewModel(errorRepository, mockUserRepository)
 
         // When: Loading a quiz that fails
         errorViewModel.loadQuiz("invalid")

@@ -34,12 +34,11 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
     }
 
     override suspend fun login(username: String, password: String): Result<User> {
+        _authState.value = AuthState.Loading
         // Simulate network delay
         delay(1000)
         
         return try {
-            _authState.value = AuthState.Loading
-            
             // Check if error simulation is enabled
             if (simulateError) {
                 _authState.value = AuthState.Error("ネットワークエラー")
@@ -74,12 +73,11 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
     }
 
     override suspend fun register(username: String, email: String, password: String): Result<User> {
+        _authState.value = AuthState.Loading
         // Simulate network delay
         delay(1500)
         
         return try {
-            _authState.value = AuthState.Loading
-            
             when {
                 username.isEmpty() || email.isEmpty() || password.isEmpty() -> {
                     _authState.value = AuthState.Error("すべての項目を入力してください")

@@ -1,9 +1,8 @@
 package com.example.quiz_app.integration
 
-import com.example.quiz_app.domain.Quiz
-import com.example.quiz_app.domain.QuizDifficulty
-import com.example.quiz_app.domain.Question
+import com.example.quiz_app.domain.*
 import com.example.quiz_app.domain.repository.QuizRepository
+import com.example.quiz_app.domain.repository.UserRepository
 import com.example.quiz_app.presentation.quiz_list.QuizListViewModel
 import com.example.quiz_app.presentation.quiz.QuizViewModel
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +76,7 @@ class QuizE2EIntegrationTest {
         }
 
         // When: ViewModel is created
-        val viewModel = QuizListViewModel(successRepository)
+        val viewModel = QuizListViewModel(successRepository, testDispatcher)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then: UI state should contain the quiz
@@ -99,8 +98,11 @@ class QuizE2EIntegrationTest {
             override suspend fun getQuizDetail(quizId: String): Result<List<Question>> = Result.failure(RuntimeException("Network error"))
         }
 
+        // Given: Mock UserRepository
+        val mockUserRepository = createMockUserRepository()
+        
         // When: QuizViewModel tries to load quiz
-        val quizViewModel = QuizViewModel(errorRepository)
+        val quizViewModel = QuizViewModel(errorRepository, mockUserRepository, testDispatcher, enableTimer = false)
         quizViewModel.loadQuiz("invalid-id")
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -122,8 +124,11 @@ class QuizE2EIntegrationTest {
             override suspend fun getQuizDetail(quizId: String): Result<List<Question>> = Result.success(sampleQuestions)
         }
 
+        // Given: Mock UserRepository
+        val mockUserRepository = createMockUserRepository()
+        
         // When: QuizViewModel loads and processes quiz
-        val quizViewModel = QuizViewModel(completeRepository)
+        val quizViewModel = QuizViewModel(completeRepository, mockUserRepository, testDispatcher, enableTimer = false)
         
         // Step 1: Load quiz
         quizViewModel.loadQuiz("1")
@@ -185,8 +190,11 @@ class QuizE2EIntegrationTest {
             override suspend fun getQuizDetail(quizId: String): Result<List<Question>> = Result.success(sampleQuestions)
         }
 
+        // Given: Mock UserRepository
+        val mockUserRepository = createMockUserRepository()
+
         // When: QuizViewModel manages session state
-        val quizViewModel = QuizViewModel(repository)
+        val quizViewModel = QuizViewModel(repository, mockUserRepository, testDispatcher, enableTimer = false)
         quizViewModel.loadQuiz("1")
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -207,5 +215,37 @@ class QuizE2EIntegrationTest {
         assertEquals(0, uiState.score)
         assertFalse(uiState.isQuizFinished)
         assertTrue(uiState.questions.isEmpty())
+    }
+
+    private fun createMockUserRepository(): UserRepository {
+        return object : UserRepository {
+            override fun getBookmarks(): Flow<List<Bookmark>> = flowOf(emptyList())
+            override suspend fun addBookmark(questionId: String, quizId: String, notes: String?): Result<Unit> = Result.success(Unit)
+            override suspend fun removeBookmark(questionId: String): Result<Unit> = Result.success(Unit)
+            override fun isBookmarked(questionId: String): Flow<Boolean> = flowOf(false)
+            override suspend fun getBookmarkFolders(): Result<List<BookmarkFolder>> = Result.failure(NotImplementedError())
+            override suspend fun createBookmarkFolder(name: String, description: String?): Result<BookmarkFolder> = Result.failure(NotImplementedError())
+            override suspend fun addToFolder(bookmarkId: String, folderId: String): Result<Unit> = Result.failure(NotImplementedError())
+            override fun getLearningHistory(): Flow<List<LearningHistory>> = flowOf(emptyList())
+            override suspend fun addLearningRecord(record: LearningHistory): Result<Unit> = Result.success(Unit)
+            override suspend fun getQuizSessions(): Result<List<QuizSession>> = Result.success(emptyList())
+            override suspend fun startQuizSession(quizId: String, quizTitle: String): Result<QuizSession> = Result.failure(NotImplementedError())
+            override suspend fun updateQuizSession(session: QuizSession): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun completeQuizSession(sessionId: String, answers: List<SessionAnswer>): Result<QuizSession> = Result.failure(NotImplementedError())
+            override suspend fun getLearningStatistics(): Result<LearningStatistics> = Result.failure(NotImplementedError())
+            override suspend fun getCategoryStatistics(): Result<Map<String, CategoryStatistics>> = Result.failure(NotImplementedError())
+            override suspend fun getDifficultyStatistics(): Result<Map<QuizDifficulty, DifficultyStatistics>> = Result.failure(NotImplementedError())
+            override suspend fun getMonthlyProgress(): Result<List<MonthlyProgress>> = Result.failure(NotImplementedError())
+            override suspend fun getWeeklyProgress(): Result<List<WeeklyProgress>> = Result.failure(NotImplementedError())
+            override suspend fun getDailyStats(date: String): Result<DailyLearningStats> = Result.failure(NotImplementedError())
+            override suspend fun getAchievements(): Result<List<Achievement>> = Result.failure(NotImplementedError())
+            override suspend fun unlockAchievement(achievementId: String): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getPerformanceAnalysis(): Result<PerformanceAnalysis> = Result.failure(NotImplementedError())
+            override suspend fun saveSearch(search: SavedSearch): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getSavedSearches(): Result<List<SavedSearch>> = Result.failure(NotImplementedError())
+            override suspend fun getFilterOptions(): Result<FilterOptions> = Result.failure(NotImplementedError())
+            override suspend fun updateUserPreferences(preferences: Map<String, Any>): Result<Unit> = Result.failure(NotImplementedError())
+            override suspend fun getUserPreferences(): Result<Map<String, Any>> = Result.failure(NotImplementedError())
+        }
     }
 }
